@@ -1,0 +1,226 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>IPIP.dn42</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<style>
+body, input, select, td, textarea {font-family: Tahoma, sans-serif; font-size: 9pt; font-weight: normal;}
+table, tr, th, td {border: 1px #ccc solid; border-collapse: collapse;}
+tr {height: 20px;}
+.fullwidth {width: 600px;}
+.centre {text-align: center;}
+.tdtitle {text-align: center; background-color: #eee;}
+.iptext {width: 300px; padding: 2px;}
+.submittext {width: 95%; padding: 2px;}
+.hidden {display: none;}
+.link {cursor: pointer;}
+#main {width: 600px; text-align: left; margin: 0 auto;}
+</style>
+</head>
+<body>
+<div id="main">
+<h1 class="centre">IPIP.dn42</h1>
+<h3 class="centre"><a href="/login">Login</a> | <a href="/login">Register</a></h3>
+<br/>
+<table class="fullwidth">
+<tr>
+<td colspan="3" class="tdtitle">Your IP address<br/>
+</td>
+</tr>
+<tr>
+<td class="tdtitle" style="width:18%;">Your IPv4</td>
+<td id="myipv4" class="centre" style="width:30%;">Loading</td>
+<td id="myaddrv4" class="centre" style="width:52%;">Loading</td>
+</tr>
+<tr>
+<td class="tdtitle" style="width:18%;">Your IPv6</td>
+<td id="myipv6" class="centre" style="width:30%;">Loading</td>
+<td id="myaddrv6" class="centre" style="width:52%;">Loading</td>
+</tr>
+</table>
+<br/>
+
+<form action="" onsubmit="return handlequery()">
+<table class="fullwidth">
+<tr>
+<td colspan="2" class="tdtitle">IP Information Query</td>
+</tr>
+<tr>
+<td class="tdtitle" style="width:18%;">Input</td>
+<td class="centre">
+	<input id="ip" name="ip" type="text" class="iptext" value=""/>
+	<button type="submit" id="query">Search</button>
+</td>
+</tr>
+<tr>
+<td class="tdtitle" style="width:18%;">IP</td>
+<td id="iprange" class="centre"></td>
+</tr>
+<tr>
+<td class="tdtitle" style="width:18%;">CIDR</td>
+<td id="addr" class="centre"></td>
+</tr>
+<tr>
+<td class="tdtitle" style="width:18%;">IP amount</td>
+<td id="count" class="centre"></td>
+</tr>
+<tr>
+<td class="tdtitle" style="width:18%;">Location</td>
+<td id="location" class="centre"></td>
+</tr>
+<tr>
+<td class="tdtitle" style="width:18%;">Service Provider</td>
+<td id="provider" class="centre"></td>
+</tr>
+<tr>
+<td class="tdtitle" style="width:18%;">IDC</td>
+<td id="idc" class="centre"></td>
+</tr>
+<tr>
+<td class="tdtitle" style="width:18%;">Usage</td>
+<td id="usage" class="centre"></td>
+</tr>
+<tr>
+<td class="tdtitle" style="width:18%;">Is a PoP</td>
+<td id="pop" class="centre"></td>
+</tr>
+</table>
+</form>
+<br/>
+
+<br/>
+
+<hr>
+<p class="centre">
+All rights reserved &copy; 2022 MolMoe Network<br/>
+</p>
+</div>
+<script type="text/javascript" src="/static/jquery-1.12.4.min.js"></script>
+<script type="text/javascript" src="/static/jquery.xdomainrequest.min.js"></script>
+<script type="text/javascript">
+var ie=!!window.ActiveXObject;
+var ie6=ie&&!window.XMLHttpRequest;
+var ie8=ie&&!!document.documentMode;
+var ie7=ie&&!ie6&&!ie8;
+$.support.cors = true;
+$("#ua").text(navigator.userAgent);
+$("#togglereport").click(handletogglereport);
+queryinfo(updatemyipv4, updatemyipv6);
+
+function handletogglereport() {
+	$("#report").toggle();
+}
+function handlequery() {
+	var ip = $("#ip").val();
+	queryip(ip, updateip);
+	return false;
+}
+
+function handlesubmit() {
+	var ip = $("#pip").val();
+	var mask = $("#pmask").val();
+	var addr = $("#paddr").val();
+	if (CORS) {
+		submit(ip, mask, addr, updatesubmit);
+		return false;
+	} else {
+		return true;
+	}
+}
+
+function queryinfo(callback4, callback6) {
+    var url4 = "http://127.0.0.1:5000/api/query";
+    var url6 = "//[::1]:5000/api/query";
+    var type = "json";
+	$.ajax({
+		url: url4,
+		crossDomain: true,
+		dataType: type,
+		success: function(data) {
+			callback4({
+				myip: data.ip,
+				disp: data.data[0].location,
+			});
+		},
+		error: function(jqXHR, textstatus, errorthrown) {
+			if (window.console) console.log({disp: jqXHR.status + ":" + jqXHR.responseText});
+			callback4({error: 1});
+		}
+	});
+	$.ajax({
+		url: url6,
+		crossDomain: true,
+		dataType: type,
+		success: function(data) {
+			callback6({
+				myip: data.data.myip,
+				disp: data.data.location,
+			});
+		},
+		error: function(jqXHR, textstatus, errorthrown) {
+			if (window.console) console.log({disp: jqXHR.status + ":" + jqXHR.responseText});
+			callback6({error: 1});
+		}
+	});
+}
+
+function queryip(ip, callback) {
+	$("#addr").text("Searching, please wait...");
+	$.ajax({
+		url: "/api/query?ip=" + ip,
+		success: function(data) {
+			callback({
+				myip: data.data.myip,
+				disp: data.data.location,
+				query: data.data.ip.query
+			});
+		},
+		error: function(jqXHR, textstatus, errorthrown) {
+			callback({disp: jqXHR.status + ":" + jqXHR.responseText});
+		}
+	});
+}
+
+function updatemyipv4(data) {
+	if (data.error) {
+		$("#myipv4").text("Not DN42");
+		$("#myaddrv4").text("IPv4 address");
+	} else {
+		$("#myipv4").text(data.myip);
+		$("#myaddrv4").text(data.disp);
+	}
+}
+function updatemyipv6(data) {
+	if (data.error) {
+		$("#myipv6").text("Not DN42");
+		$("#myaddrv6").text("IPv6 address");
+	} else {
+		$("#myipv6").text(data.myip);
+		$("#myaddrv6").text(data.disp);
+	}
+}
+function updateip(data) {
+	$("#iprange").text(data.query);
+	$("#addr").text(data.disp);
+}
+function updatesubmit(data) {
+	if (data.code < 0) {
+		$("#submitstatus").text(data.msg);
+	} else {
+		$("#submitstatus").text(data.msg);
+		$("#pip").val();
+		$("#pmask").val();
+		$("#paddr").val();
+	}
+}
+
+</script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-8016423-4');
+</script>
+</body>
+</html>
